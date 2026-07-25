@@ -44,7 +44,10 @@ class Comment(db.Model):
 
 with app.app_context():
     os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        print("DB init exception:", e)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -117,19 +120,20 @@ def get_suggestions():
         result = []
         for s in sugs:
             comments_list = []
-            for c in s.comments:
-                comments_list.append({
-                    'id': c.id,
-                    'content': c.content,
-                    'author': c.author,
-                    'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
-                })
+            if hasattr(s, 'comments') and s.comments:
+                for c in s.comments:
+                    comments_list.append({
+                        'id': c.id,
+                        'content': c.content,
+                        'author': c.author,
+                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
+                    })
             result.append({
                 'id': s.id,
                 'title': s.title,
                 'content': s.content,
-                'author': s.author,
-                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
+                'author': getattr(s, 'author', '익명'),
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if getattr(s, 'created_at', None) else '',
                 'comments': comments_list
             })
         return jsonify(result)
@@ -141,15 +145,21 @@ def get_suggestions():
 def add_suggestion():
     if 'user_code' not in session:
         return jsonify({'status': 'unauthorized'}), 401
-    data = request.json
-    new_sug = Suggestion(
-        title=data['title'], 
-        content=data['content'], 
-        author=session.get('user_name', '익명')
-    )
-    db.session.add(new_sug)
-    db.session.commit()
-    return jsonify({'status': 'success'})
+    try:
+        data = request.json
+        author_name = session.get('user_name', '익명')
+        new_sug = Suggestion(
+            title=data.get('title', ''), 
+            content=data.get('content', ''), 
+            author=author_name
+        )
+        db.session.add(new_sug)
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        db.session.rollback()
+        print("Error adding suggestion:", e)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/suggestions/<int:sug_id>', methods=['DELETE'])
 def delete_suggestion(sug_id):
@@ -166,15 +176,19 @@ def delete_suggestion(sug_id):
 def add_comment(sug_id):
     if 'user_code' not in session or not session.get('is_admin'):
         return jsonify({'status': 'unauthorized'}), 403
-    data = request.json
-    comment = Comment(
-        suggestion_id=sug_id, 
-        content=data['content'], 
-        author=session.get('user_name', '관리자')
-    )
-    db.session.add(comment)
-    db.session.commit()
-    return jsonify({'status': 'success'})
+    try:
+        data = request.json
+        comment = Comment(
+            suggestion_id=sug_id, 
+            content=data.get('content', ''), 
+            author=session.get('user_name', '관리자')
+        )
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/comments/<int:comment_id>', methods=['DELETE'])
 def delete_comment(comment_id):
