@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text, inspect
 from datetime import datetime, timedelta, timezone
 import os
 
@@ -47,12 +48,26 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, default=get_kst_now)
 
+# 💡 구버전 DB 자동 컬럼 보완 로직
 with app.app_context():
     os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
+    db.create_all()
+    
+    # DB 컬럼 누락 여부 자동 체크 및 강제 추가
     try:
-        db.create_all()
+        inspector = inspect(db.engine)
+        if 'suggestion' in inspector.get_table_names():
+            columns = [c['name'] for c in inspector.get_columns('suggestion')]
+            if 'author' not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN author VARCHAR(50) DEFAULT '익명';"))
+                    conn.commit()
+            if 'created_at' not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN created_at DATETIME;"))
+                    conn.commit()
     except Exception as e:
-        print("DB init error:", e)
+        print("DB Migration Exception:", e)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -128,19 +143,20 @@ def get_suggestions():
         result = []
         for s in sugs:
             comments_list = []
-            for c in s.comments:
-                comments_list.append({
-                    'id': c.id,
-                    'content': c.content,
-                    'author': c.author,
-                    'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
-                })
+            if hasattr(s, 'comments') and s.comments:
+                for c in s.comments:
+                    comments_list.append({
+                        'id': c.id,
+                        'content': c.content,
+                        'author': getattr(c, 'author', '관리자'),
+                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if getattr(c, 'created_at', None) else ''
+                    })
             result.append({
                 'id': s.id,
                 'title': s.title,
                 'content': s.content,
-                'author': s.author,
-                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
+                'author': getattr(s, 'author', '익명'),
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if getattr(s, 'created_at', None) else '',
                 'comments': comments_list
             })
         return jsonify(result)
