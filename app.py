@@ -8,7 +8,8 @@ app.secret_key = 'kurly_nextmile_ds_secret_key'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_dir = os.path.join(basedir, 'instance')
-db_path = os.path.join(instance_dir, 'app.db')
+# 💡 DB 파일명을 app_v2.db로 변경하여 꼬인 구버전 DB를 강제로 우회/신규생성!
+db_path = os.path.join(instance_dir, 'app_v2.db')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -49,7 +50,6 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, default=get_kst_now)
 
-# 🟢 실시간 접속자 상태 테이블
 class UserStatus(db.Model):
     user_code = db.Column(db.String(20), primary_key=True)
     user_name = db.Column(db.String(50), nullable=False)
@@ -57,9 +57,8 @@ class UserStatus(db.Model):
 
 with app.app_context():
     os.makedirs(instance_dir, exist_ok=True)
-    db.create_all()
+    db.create_all() # 깨끗한 최신 테이블로 완전 신규 생성!
 
-# 요청 들어올 때마다 접속자의 마지막 활동 시간 갱신
 @app.before_request
 def update_last_active():
     if 'user_code' in session:
@@ -113,7 +112,6 @@ def suggestions():
                            user_name=session.get('user_name'),
                            is_admin=session.get('is_admin', False))
 
-# 🟢 접속 중인 인원 조회 API (최근 5분 이내 활동자)
 @app.route('/api/online_users', methods=['GET'])
 def get_online_users():
     if 'user_code' not in session:
