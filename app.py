@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text, inspect
 from datetime import datetime, timedelta, timezone
 import os
 
@@ -8,7 +7,9 @@ app = Flask(__name__)
 app.secret_key = 'kurly_nextmile_ds_secret_key'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.path.join(basedir, 'instance', 'app.db')
+instance_dir = os.path.join(basedir, 'instance')
+db_path = os.path.join(instance_dir, 'app.db')
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -48,26 +49,15 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, default=get_kst_now)
 
-# 💡 구버전 DB 자동 컬럼 보완 로직
+# 💡 서버 시작 시 꼬인 구버전 DB 파일 자동 삭제 후 새로 초기화
 with app.app_context():
-    os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
-    db.create_all()
-    
-    # DB 컬럼 누락 여부 자동 체크 및 강제 추가
-    try:
-        inspector = inspect(db.engine)
-        if 'suggestion' in inspector.get_table_names():
-            columns = [c['name'] for c in inspector.get_columns('suggestion')]
-            if 'author' not in columns:
-                with db.engine.connect() as conn:
-                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN author VARCHAR(50) DEFAULT '익명';"))
-                    conn.commit()
-            if 'created_at' not in columns:
-                with db.engine.connect() as conn:
-                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN created_at DATETIME;"))
-                    conn.commit()
-    except Exception as e:
-        print("DB Migration Exception:", e)
+    os.makedirs(instance_dir, exist_ok=True)
+    if os.path.exists(db_path):
+        try:
+            os.remove(db_path) # 꼬인 구버전 DB 삭제
+        except Exception as e:
+            print("DB removal skip:", e)
+    db.create_all() # 깨끗한 최신 테이블 새로 생성
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -148,15 +138,15 @@ def get_suggestions():
                     comments_list.append({
                         'id': c.id,
                         'content': c.content,
-                        'author': getattr(c, 'author', '관리자'),
-                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if getattr(c, 'created_at', None) else ''
+                        'author': c.author,
+                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
                     })
             result.append({
                 'id': s.id,
                 'title': s.title,
                 'content': s.content,
-                'author': getattr(s, 'author', '익명'),
-                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if getattr(s, 'created_at', None) else '',
+                'author': s.author,
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
                 'comments': comments_list
             })
         return jsonify(result)
