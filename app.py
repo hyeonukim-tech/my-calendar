@@ -1,13 +1,13 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect
 import os
 
 app = Flask(__name__)
 app.secret_key = 'kurly_nextmile_ds_secret_key'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'app.db')
+db_path = os.path.join(basedir, 'instance', 'app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -43,14 +43,12 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
-# 💡 DB 충돌 방지 및 자동 재생성 처리
+# 💡 DB 테이블 강제 리셋 및 깨끗한 재생성
 with app.app_context():
-    instance_path = os.path.join(basedir, 'instance')
-    os.makedirs(instance_path, exist_ok=True)
-    
-    # DB 충돌 방지를 위한 안전한 생성
+    os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
     try:
-        db.create_all()
+        db.drop_all()  # 꼬인 구버전 테이블 삭제
+        db.create_all() # 최신 테이블 구조로 재생성
     except Exception as e:
         print("DB init error:", e)
 
@@ -94,7 +92,7 @@ def get_events():
     try:
         events = Event.query.all()
         return jsonify([{'id': e.id, 'title': e.title, 'start': e.start, 'end': e.end} for e in events])
-    except Exception as e:
+    except:
         return jsonify([])
 
 @app.route('/api/events', methods=['POST'])
@@ -128,20 +126,19 @@ def get_suggestions():
         result = []
         for s in sugs:
             comments_list = []
-            if hasattr(s, 'comments') and s.comments:
-                for c in s.comments:
-                    comments_list.append({
-                        'id': c.id,
-                        'content': c.content,
-                        'author': getattr(c, 'author', '관리자'),
-                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if getattr(c, 'created_at', None) else ''
-                    })
+            for c in s.comments:
+                comments_list.append({
+                    'id': c.id,
+                    'content': c.content,
+                    'author': c.author,
+                    'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
+                })
             result.append({
                 'id': s.id,
                 'title': s.title,
                 'content': s.content,
-                'author': getattr(s, 'author', '익명'),
-                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if getattr(s, 'created_at', None) else '',
+                'author': s.author,
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
                 'comments': comments_list
             })
         return jsonify(result)
@@ -154,14 +151,15 @@ def add_suggestion():
     if 'user_code' not in session:
         return jsonify({'status': 'unauthorized'}), 401
     try:
-        data = request.get_json(force=True)
-        author_name = session.get('user_name', '익명')
+        data = request.json or {}
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
         
-        new_sug = Suggestion(
-            title=data.get('title', '무제'), 
-            content=data.get('content', ''), 
-            author=author_name
-        )
+        if not title or not content:
+            return jsonify({'status': 'error', 'message': 'Empty fields'}), 400
+
+        author_name = session.get('user_name', '익명')
+        new_sug = Suggestion(title=title, content=content, author=author_name)
         db.session.add(new_sug)
         db.session.commit()
         return jsonify({'status': 'success'})
@@ -186,10 +184,14 @@ def add_comment(sug_id):
     if 'user_code' not in session or not session.get('is_admin'):
         return jsonify({'status': 'unauthorized'}), 403
     try:
-        data = request.get_json(force=True)
+        data = request.json or {}
+        content = data.get('content', '').strip()
+        if not content:
+            return jsonify({'status': 'error'}), 400
+
         comment = Comment(
             suggestion_id=sug_id, 
-            content=data.get('content', ''), 
+            content=content, 
             author=session.get('user_name', '관리자')
         )
         db.session.add(comment)
