@@ -5,18 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NM_DS Calendar</title>
   
-  <!-- 📱 PWA 매니페스트 연동 -->
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#7c3aed">
-  
-  <!-- ✨ DS 감성 파비콘 ✨ -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232b004c'/><text x='50%' y='68%' font-family='sans-serif' font-weight='900' font-size='52' fill='%23ffffff' text-anchor='middle' letter-spacing='-2'>DS</text></svg>">
   
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.min.js'></script>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
   
   <style>
-    /* 기존 스타일 유지 */
     :root {
       --bg-color: #0f172a;
       --card-bg: #1e293b;
@@ -71,13 +67,17 @@
 
     .menu-item:hover, .menu-item.active { background-color: rgba(255, 255, 255, 0.15); color: #fff; }
 
-    .sidebar.collapsed .menu-text, .sidebar.collapsed .kurly-sidebar-logo { display: none; }
+    .sidebar.collapsed .menu-text, .sidebar.collapsed .kurly-sidebar-logo, .sidebar.collapsed .user-badge { display: none; }
     .sidebar.collapsed .sidebar-header { justify-content: center; }
 
+    /* 🟢 좌측 하단 컴팩트 접속자 배지 */
     .user-badge {
-      margin-top: auto; padding: 10px; background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px; font-size: 12px; color: #cbd5e1; text-align: center;
+      margin-top: auto; padding: 8px 10px; background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px; font-size: 11px; color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
+    .user-badge .badge-title { font-weight: 700; color: #a7f3d0; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+    .user-badge .user-list-str { color: #94a3b8; line-height: 1.3; word-break: break-all; }
 
     .main-wrapper {
       flex-grow: 1; padding: 12px 16px; box-sizing: border-box; height: 100vh;
@@ -195,14 +195,13 @@
 </head>
 <body>
 
-  <!-- 좌측 사이드바 -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="kurly-sidebar-logo">
         <span class="kurly-font">Kurly</span>
         <span class="nextmile-font">Nextmile</span>
       </div>
-      <button class="toggle-btn" onclick="toggleSidebar()" title="메뉴 접기/열기">☰</button>
+      <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
     </div>
 
     <a href="/" class="menu-item active">
@@ -215,14 +214,13 @@
       <span>⚙️</span><span class="menu-text">화면 설정</span>
     </div>
 
-    {% if user_name %}
+    <!-- 🟢 좌측 하단 접속자 배지 -->
     <div class="user-badge">
-      <span class="menu-text">👤 {{ user_name }}님 접속중</span>
+      <div class="badge-title">🟢 접속 중 (<span id="onlineCount">1</span>명)</div>
+      <div class="user-list-str" id="onlineNames">불러오는 중...</div>
     </div>
-    {% endif %}
   </div>
 
-  <!-- 메인 영역 -->
   <div class="main-wrapper" id="mainWrapper">
     <div class="top-header-title">
       <div class="title-left">NM_DS Calendar</div>
@@ -234,7 +232,6 @@
         <div id="calendar"></div>
       </div>
       
-      <!-- 우측 3분할 영역 -->
       <div class="side-container">
         <div class="card side-card">
           <div class="card-title">✅ 오늘 할 일</div>
@@ -264,7 +261,6 @@
     </div>
   </div>
 
-  <!-- ⚙️ 설정 모달 -->
   <div class="modal" id="settingModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -304,17 +300,7 @@
       { title: '추석 연휴', start: '2026-09-26', isHoliday: true, badgeType: 'red' },
       { title: '개천절', start: '2026-10-03', isHoliday: true, badgeType: 'red' },
       { title: '한글날', start: '2026-10-09', isHoliday: true, badgeType: 'red' },
-      { title: '성탄절', start: '2026-12-25', isHoliday: true, badgeType: 'red' },
-
-      { title: '신정', start: '2027-01-01', isHoliday: true, badgeType: 'red' },
-      { title: '삼일절', start: '2027-03-01', isHoliday: true, badgeType: 'red' },
-      { title: '어린이날', start: '2027-05-05', isHoliday: true, badgeType: 'red' },
-      { title: '부처님오신날', start: '2027-05-13', isHoliday: true, badgeType: 'red' },
-      { title: '현충일', start: '2027-06-06', isHoliday: true, badgeType: 'red' },
-      { title: '광복절', start: '2027-08-15', isHoliday: true, badgeType: 'red' },
-      { title: '개천절', start: '2027-10-03', isHoliday: true, badgeType: 'red' },
-      { title: '한글날', start: '2027-10-09', isHoliday: true, badgeType: 'red' },
-      { title: '성탄절', start: '2027-12-25', isHoliday: true, badgeType: 'red' }
+      { title: '성탄절', start: '2026-12-25', isHoliday: true, badgeType: 'red' }
     ];
 
     function toggleSidebar() { 
@@ -367,7 +353,28 @@
       }
     }
 
+    // 🟢 실시간 접속자 체크
+    function fetchOnlineUsers() {
+      fetch('/api/online_users')
+        .then(res => res.json())
+        .then(users => {
+          const countEl = document.getElementById('onlineCount');
+          const namesEl = document.getElementById('onlineNames');
+          countEl.innerText = users.length;
+          
+          if (users.length === 0) {
+            namesEl.innerText = '접속자 없음';
+          } else {
+            namesEl.innerText = users.join(', ');
+          }
+        })
+        .catch(() => {});
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+      fetchOnlineUsers();
+      setInterval(fetchOnlineUsers, 10000);
+
       const calendarEl = document.getElementById('calendar');
       globalCalendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',

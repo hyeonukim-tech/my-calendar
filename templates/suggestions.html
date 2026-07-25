@@ -59,8 +59,16 @@
 
     .menu-item:hover, .menu-item.active { background-color: rgba(255, 255, 255, 0.15); color: #fff; }
 
-    .sidebar.collapsed .menu-text, .sidebar.collapsed .kurly-sidebar-logo { display: none; }
+    .sidebar.collapsed .menu-text, .sidebar.collapsed .kurly-sidebar-logo, .sidebar.collapsed .user-badge { display: none; }
     .sidebar.collapsed .sidebar-header { justify-content: center; }
+
+    .user-badge {
+      margin-top: auto; padding: 8px 10px; background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px; font-size: 11px; color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .user-badge .badge-title { font-weight: 700; color: #a7f3d0; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+    .user-badge .user-list-str { color: #94a3b8; line-height: 1.3; word-break: break-all; }
 
     .main-wrapper {
       flex-grow: 1; padding: 20px; box-sizing: border-box; height: 100vh;
@@ -145,6 +153,12 @@
     <a href="/suggestions" class="menu-item active">
       <span>💡</span><span class="menu-text">건의함 게시판</span>
     </a>
+
+    <!-- 🟢 좌측 하단 접속자 배지 -->
+    <div class="user-badge">
+      <div class="badge-title">🟢 접속 중 (<span id="onlineCount">1</span>명)</div>
+      <div class="user-list-str" id="onlineNames">불러오는 중...</div>
+    </div>
   </div>
 
   <div class="main-wrapper">
@@ -181,6 +195,23 @@
 
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    function fetchOnlineUsers() {
+      fetch('/api/online_users')
+        .then(res => res.json())
+        .then(users => {
+          const countEl = document.getElementById('onlineCount');
+          const namesEl = document.getElementById('onlineNames');
+          countEl.innerText = users.length;
+          
+          if (users.length === 0) {
+            namesEl.innerText = '접속자 없음';
+          } else {
+            namesEl.innerText = users.join(', ');
+          }
+        })
+        .catch(() => {});
     }
 
     function loadSuggestions() {
@@ -333,7 +364,11 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadSuggestions);
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchOnlineUsers();
+      setInterval(fetchOnlineUsers, 10000);
+      loadSuggestions();
+    });
   </script>
 </body>
 </html>

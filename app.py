@@ -49,15 +49,32 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, default=get_kst_now)
 
-# 💡 서버 시작 시 꼬인 구버전 DB 파일 자동 삭제 후 새로 초기화
+# 🟢 실시간 접속자 상태 테이블
+class UserStatus(db.Model):
+    user_code = db.Column(db.String(20), primary_key=True)
+    user_name = db.Column(db.String(50), nullable=False)
+    last_active = db.Column(db.DateTime, default=get_kst_now)
+
 with app.app_context():
     os.makedirs(instance_dir, exist_ok=True)
-    if os.path.exists(db_path):
+    db.create_all()
+
+# 요청 들어올 때마다 접속자의 마지막 활동 시간 갱신
+@app.before_request
+def update_last_active():
+    if 'user_code' in session:
+        code = session['user_code']
+        name = session.get('user_name', '사용자')
+        status = UserStatus.query.get(code)
+        if not status:
+            status = UserStatus(user_code=code, user_name=name, last_active=get_kst_now())
+            db.session.add(status)
+        else:
+            status.last_active = get_kst_now()
         try:
-            os.remove(db_path) # 꼬인 구버전 DB 삭제
-        except Exception as e:
-            print("DB removal skip:", e)
-    db.create_all() # 깨끗한 최신 테이블 새로 생성
+            db.session.commit()
+        except:
+            db.session.rollback()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -74,6 +91,11 @@ def login():
 
 @app.route('/logout')
 def logout():
+    if 'user_code' in session:
+        status = UserStatus.query.get(session['user_code'])
+        if status:
+            db.session.delete(status)
+            db.session.commit()
     session.clear()
     return redirect(url_for('login'))
 
@@ -91,7 +113,19 @@ def suggestions():
                            user_name=session.get('user_name'),
                            is_admin=session.get('is_admin', False))
 
-# --- API ---
+# 🟢 접속 중인 인원 조회 API (최근 5분 이내 활동자)
+@app.route('/api/online_users', methods=['GET'])
+def get_online_users():
+    if 'user_code' not in session:
+        return jsonify([]), 401
+    
+    five_mins_ago = get_kst_now() - timedelta(minutes=5)
+    online_statuses = UserStatus.query.filter(UserStatus.last_active >= five_mins_ago).all()
+    
+    online_names = [u.user_name for u in online_statuses]
+    return jsonify(online_names)
+
+# --- 달력 API ---
 @app.route('/api/events', methods=['GET'])
 def get_events():
     if 'user_code' not in session:
