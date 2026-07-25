@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NM_DS 건의함 게시판</title>
+  
+  <!-- ✨ DS 감성 파비콘 ✨ -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232b004c'/><text x='50%' y='68%' font-family='sans-serif' font-weight='900' font-size='52' fill='%23ffffff' text-anchor='middle' letter-spacing='-2'>DS</text></svg>">
+
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* 🌙 다크 모드로 완전 고정 */
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --border-color: #334155;
+      --sidebar-bg: #1a0030;
+      --sidebar-text: #c084fc;
+      --primary-color: #7c3aed;
+    }
+
+    html, body {
+      width: 100%; height: 100%; margin: 0; padding: 0;
+      font-family: 'Pretendard', sans-serif;
+      background-color: var(--bg-color); color: var(--text-color);
+      display: flex; overflow: auto;
+    }
+
+    .sidebar {
+      width: 210px; background-color: var(--sidebar-bg); color: var(--sidebar-text);
+      display: flex; flex-direction: column; padding: 15px 10px;
+      box-sizing: border-box; flex-shrink: 0; position: sticky; top: 0; height: 100vh;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    }
+
+    .sidebar-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 12px; margin-bottom: 15px;
+    }
+
+    .kurly-sidebar-logo { display: flex; align-items: center; gap: 4px; }
+    .kurly-sidebar-logo .kurly-font { font-family: 'Dancing Script', cursive; font-size: 24px; font-weight: 700; color: #fff; }
+    .kurly-sidebar-logo .nextmile-font { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800; color: #fff; }
+
+    .menu-item {
+      padding: 10px 12px; margin-bottom: 6px; border-radius: 8px;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 14px; color: var(--sidebar-text); text-decoration: none;
+    }
+
+    .menu-item:hover, .menu-item.active { background-color: rgba(255, 255, 255, 0.15); color: #fff; }
+
+    .main-wrapper {
+      flex-grow: 1; padding: 20px; box-sizing: border-box; min-height: 100vh; max-width: 1000px; margin: 0 auto;
+    }
+
+    .top-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+    }
+
+    .page-title { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    .admin-bar {
+      display: flex; align-items: center; gap: 10px; font-size: 14px;
+    }
+
+    .btn {
+      padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 13px;
+    }
+    .btn-primary { background: var(--primary-color); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
+    .btn-danger { background: #dc2626; color: #fff; }
+
+    .sug-box {
+      background: var(--card-bg); border-radius: 12px; padding: 20px;
+      border: 1px solid var(--border-color); margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .sug-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .sug-title { font-size: 16px; font-weight: 700; }
+    .sug-date { font-size: 12px; color: #94a3b8; }
+    .sug-content { font-size: 14px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 15px; }
+
+    .comment-area {
+      background: rgba(0, 0, 0, 0.2); border-top: 1px solid var(--border-color);
+      padding: 12px; border-radius: 8px; margin-top: 10px;
+    }
+
+    .comment-item {
+      font-size: 13px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .comment-form { display: flex; gap: 8px; margin-top: 10px; }
+    .comment-form input {
+      flex-grow: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);
+      background: var(--bg-color); color: var(--text-color);
+    }
+
+    .write-card {
+      background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px;
+    }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box;
+      background: var(--bg-color); color: var(--text-color);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="kurly-sidebar-logo">
+        <span class="kurly-font">Kurly</span>
+        <span class="nextmile-font">Nextmile</span>
+      </div>
+    </div>
+    <a href="/" class="menu-item">
+      <span>📅</span><span>달력 보기</span>
+    </a>
+    <a href="/suggestions" class="menu-item active">
+      <span>💡</span><span>건의함 게시판</span>
+    </a>
+  </div>
+
+  <div class="main-wrapper">
+    <div class="top-header">
+      <div class="page-title">💡 건의함 게시판</div>
+      <div class="admin-bar">
+        <span id="adminStatusText" style="font-weight: 600; color: #94a3b8;">[일반 사용자 권한]</span>
+        <button class="btn btn-outline" id="authBtn" onclick="toggleAuth()">관리자 로그인 🔒</button>
+      </div>
+    </div>
+
+    <div class="write-card">
+      <div style="font-weight: 700; margin-bottom: 12px;">✏️ 새 건의사항 작성하기</div>
+      <div class="form-group">
+        <label>제목</label>
+        <input type="text" id="sugTitleInput" placeholder="건의 제목을 입력하세요">
+      </div>
+      <div class="form-group">
+        <label>내용</label>
+        <textarea id="sugContentInput" rows="3" placeholder="개선 및 건의 내용을 상세히 남겨주세요"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitSuggestion()">건의글 올리기</button>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
+
+    <div style="font-size: 16px; font-weight: 700; margin-bottom: 15px;">📥 접수된 건의 목록</div>
+    <div id="suggestionsList"></div>
+  </div>
+
+  <script>
+    let isAdmin = false;
+
+    function checkAuth() {
+      fetch('/api/auth-check')
+      .then(res => res.json())
+      .then(data => {
+        isAdmin = data.is_admin;
+        const statusText = document.getElementById('adminStatusText');
+        const authBtn = document.getElementById('authBtn');
+
+        if (isAdmin) {
+          statusText.innerText = "🔓 관리자 권한 로그인됨";
+          statusText.style.color = "#60a5fa";
+          authBtn.innerText = "로그아웃";
+        } else {
+          statusText.innerText = "[일반 사용자 권한]";
+          statusText.style.color = "#94a3b8";
+          authBtn.innerText = "관리자 로그인 🔒";
+        }
+        loadSuggestions();
+      });
+    }
+
+    function toggleAuth() {
+      if (isAdmin) {
+        fetch('/api/logout', { method: 'POST' })
+        .then(() => checkAuth());
+      } else {
+        const password = prompt("🔐 관리자 비밀번호를 입력하세요:");
+        if (password) {
+          fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+          })
+          .then(res => {
+            if (res.ok) {
+              alert("성공적으로 로그인되었습니다!");
+              checkAuth();
+            } else {
+              alert("❌ 비밀번호가 올바르지 않습니다.");
+            }
+          });
+        }
+      }
+    }
+
+    function submitSuggestion() {
+      const title = document.getElementById('sugTitleInput').value;
+      const content = document.getElementById('sugContentInput').value;
+      if (!title || !content) { alert("제목과 내용을 입력해주세요."); return; }
+
+      fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title, content: content })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("건의사항이 등록되었습니다!");
+        document.getElementById('sugTitleInput').value = '';
+        document.getElementById('sugContentInput').value = '';
+        loadSuggestions();
+      });
+    }
+
+    function loadSuggestions() {
+      fetch('/api/suggestions')
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById('suggestionsList');
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+          container.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8;">등록된 건의글이 없습니다.</div>';
+          return;
+        }
+
+        data.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'sug-box';
+
+          let commentsHtml = '';
+          item.comments.forEach(c => {
+            commentsHtml += `
+              <div class="comment-item">
+                <span>💬 <b>관리자 답변:</b> ${c.content} <small style="color:#94a3b8;">(${c.created_at})</small></span>
+                ${isAdmin ? `<button class="btn btn-danger" style="padding:2px 6px; font-size:11px;" onclick="deleteComment(${c.id})">삭제</button>` : ''}
+              </div>
+            `;
+          });
+
+          let commentInputHtml = '';
+          if (isAdmin) {
+            commentInputHtml = `
+              <div class="comment-form">
+                <input type="text" id="comment-input-${item.id}" placeholder="관리자 답변 작성...">
+                <button class="btn btn-primary" onclick="addComment(${item.id})">답변 등록</button>
+              </div>
+            `;
+          }
+
+          div.innerHTML = `
+            <div class="sug-header">
+              <span class="sug-title">📌 ${item.title}</span>
+              <div>
+                <span class="sug-date">${item.created_at}</span>
+                ${isAdmin ? `<button class="btn btn-danger" style="padding:3px 8px; font-size:12px; margin-left:10px;" onclick="deleteSuggestion(${item.id})">글 삭제</button>` : ''}
+              </div>
+            </div>
+            <div class="sug-content">${item.content}</div>
+
+            <div class="comment-area">
+              ${commentsHtml.length > 0 ? commentsHtml : '<div style="font-size:12px; color:#94a3b8; margin-bottom:5px;">등록된 답변이 없습니다.</div>'}
+              ${commentInputHtml}
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function addComment(sugId) {
+      const input = document.getElementById(`comment-input-${sugId}`);
+      if (!input.value.trim()) return;
+
+      fetch(`/api/suggestions/${sugId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: input.value })
+      })
+      .then(res => res.json())
+      .then(() => loadSuggestions());
+    }
+
+    function deleteComment(commentId) {
+      if (confirm('답변을 삭제하시겠습니까?')) {
+        fetch(`/api/comments/${commentId}`, { method: 'DELETE' })
+        .then(() => loadSuggestions());
+      }
+    }
+
+    function deleteSuggestion(id) {
+      if (confirm('이 건의글을 삭제하시겠습니까?')) {
+        fetch(`/api/suggestions/${id}`, { method: 'DELETE' })
+        .then(() => loadSuggestions());
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAuth);
+  </script>
+</body>
+</html>
