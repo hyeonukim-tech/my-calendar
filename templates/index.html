@@ -70,7 +70,7 @@
     .sidebar.collapsed .menu-text, .sidebar.collapsed .kurly-sidebar-logo, .sidebar.collapsed .user-badge { display: none; }
     .sidebar.collapsed .sidebar-header { justify-content: center; }
 
-    /* 🟢 좌측 하단 컴팩트 접속자 배지 */
+    /* 🟢 좌측 하단 접속자 배지 */
     .user-badge {
       margin-top: auto; padding: 8px 10px; background: rgba(255, 255, 255, 0.05);
       border-radius: 8px; font-size: 11px; color: #cbd5e1;
@@ -247,14 +247,11 @@
           </div>
         </div>
 
+        <!-- 💡 데일리 업무 틀은 유지하고 내부는 깔끔하게 비워둠 -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
           <div class="todo-list">
-            <div class="todo-item">🔹 오전 이슈 리포트 확인</div>
-            <div class="todo-item">🔹 서버 상태 점검 및 백업</div>
-            <div class="todo-item">🔹 일일 대시보드 모니터링</div>
-            <div class="todo-item">🔹 미출고 이슈 현황 파악</div>
-            <div class="todo-item">🔹 센터별 배송 현황 체크</div>
+            <div class="no-todo">등록된 업무가 없습니다.</div>
           </div>
         </div>
       </div>
@@ -353,7 +350,6 @@
       }
     }
 
-    // 🟢 실시간 접속자 체크
     function fetchOnlineUsers() {
       fetch('/api/online_users')
         .then(res => res.json())
