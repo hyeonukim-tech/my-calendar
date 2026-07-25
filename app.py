@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, timedelta, timezone
 import os
 
 app = Flask(__name__)
@@ -11,6 +12,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# 🇰🇷 한국 시간(KST) 구하는 함수
+def get_kst_now():
+    return datetime.now(timezone.utc) + timedelta(hours=9)
 
 TEAM_USERS = {
     "NM9222": "관리자",
@@ -33,7 +38,7 @@ class Suggestion(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     author = db.Column(db.String(50), default="익명")
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    created_at = db.Column(db.DateTime, default=get_kst_now)
     comments = db.relationship('Comment', backref='suggestion', cascade='all, delete-orphan', lazy=True)
 
 class Comment(db.Model):
@@ -41,14 +46,12 @@ class Comment(db.Model):
     suggestion_id = db.Column(db.Integer, db.ForeignKey('suggestion.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     author = db.Column(db.String(50), default="관리자")
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    created_at = db.Column(db.DateTime, default=get_kst_now)
 
-# 💡 DB 테이블 강제 리셋 및 깨끗한 재생성
 with app.app_context():
     os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
     try:
-        db.drop_all()  # 꼬인 구버전 테이블 삭제
-        db.create_all() # 최신 테이블 구조로 재생성
+        db.create_all()
     except Exception as e:
         print("DB init error:", e)
 
@@ -159,7 +162,7 @@ def add_suggestion():
             return jsonify({'status': 'error', 'message': 'Empty fields'}), 400
 
         author_name = session.get('user_name', '익명')
-        new_sug = Suggestion(title=title, content=content, author=author_name)
+        new_sug = Suggestion(title=title, content=content, author=author_name, created_at=get_kst_now())
         db.session.add(new_sug)
         db.session.commit()
         return jsonify({'status': 'success'})
@@ -192,7 +195,8 @@ def add_comment(sug_id):
         comment = Comment(
             suggestion_id=sug_id, 
             content=content, 
-            author=session.get('user_name', '관리자')
+            author=session.get('user_name', '관리자'),
+            created_at=get_kst_now()
         )
         db.session.add(comment)
         db.session.commit()
