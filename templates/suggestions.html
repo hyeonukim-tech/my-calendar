@@ -169,7 +169,7 @@
         <label>내용</label>
         <textarea id="sugContent" placeholder="개선 및 건의 내용을 상세히 남겨주세요"></textarea>
       </div>
-      <button class="btn" onclick="submitSuggestion()">건의글 올리기</button>
+      <button class="btn" id="sugSubmitBtn" onclick="submitSuggestion()">건의글 올리기</button>
     </div>
 
     <div style="font-weight: 700; margin-bottom: 12px;">📥 접수된 건의 목록</div>
@@ -186,14 +186,18 @@
     function loadSuggestions() {
       fetch('/api/suggestions')
         .then(res => {
-          if (!res.ok) throw new Error('네트워크 응답 에러');
+          if (res.status === 401) {
+            window.location.href = '/login';
+            return;
+          }
           return res.json();
         })
         .then(data => {
+          if (!data) return;
           const container = document.getElementById('sugList');
           container.innerHTML = '';
 
-          if (!data || data.length === 0) {
+          if (data.length === 0) {
             container.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding: 10px;">등록된 건의사항이 없습니다. 첫 번째 건의글을 작성해 보세요!</div>';
             return;
           }
@@ -242,29 +246,52 @@
         })
         .catch(err => {
           console.error(err);
-          document.getElementById('sugList').innerHTML = '<div style="color:#f87171; font-size:13px; padding: 10px;">건의 목록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
+          document.getElementById('sugList').innerHTML = '<div style="color:#f87171; font-size:13px; padding: 10px;">건의 목록을 불러오는 중 오류가 발생했습니다.</div>';
         });
     }
 
     function submitSuggestion() {
-      const title = document.getElementById('sugTitle').value.trim();
-      const content = document.getElementById('sugContent').value.trim();
+      const titleInput = document.getElementById('sugTitle');
+      const contentInput = document.getElementById('sugContent');
+      const btn = document.getElementById('sugSubmitBtn');
+
+      const title = titleInput.value.trim();
+      const content = contentInput.value.trim();
 
       if (!title || !content) {
         alert('제목과 내용을 모두 입력해 주세요!');
         return;
       }
 
+      btn.disabled = true;
+      btn.innerText = '등록 중...';
+
       fetch('/api/suggestions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ title: title, content: content })
       })
       .then(res => res.json())
-      .then(() => {
-        document.getElementById('sugTitle').value = '';
-        document.getElementById('sugContent').value = '';
-        loadSuggestions();
+      .then(resData => {
+        btn.disabled = false;
+        btn.innerText = '건의글 올리기';
+
+        if (resData.status === 'success') {
+          titleInput.value = '';
+          contentInput.value = '';
+          loadSuggestions();
+        } else {
+          alert('등록 실패: ' + (resData.message || '오류가 발생했습니다.'));
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = '건의글 올리기';
+        alert('서버 통신 오류가 발생했습니다.');
+        console.error(err);
       });
     }
 
@@ -274,11 +301,20 @@
 
       fetch(`/api/suggestions/${sugId}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: input.value })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ content: input.value.trim() })
       })
       .then(res => res.json())
-      .then(() => loadSuggestions());
+      .then(resData => {
+        if (resData.status === 'success') {
+          loadSuggestions();
+        } else {
+          alert('답변 등록 실패');
+        }
+      });
     }
 
     function deleteSuggestion(id) {

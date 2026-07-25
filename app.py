@@ -13,7 +13,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# 🇰🇷 한국 시간(KST) 구하는 함수
 def get_kst_now():
     return datetime.now(timezone.utc) + timedelta(hours=9)
 
@@ -102,8 +101,8 @@ def get_events():
 def add_event():
     if 'user_code' not in session:
         return jsonify({'status': 'unauthorized'}), 401
-    data = request.json
-    new_event = Event(title=data['title'], start=data['start'], end=data.get('end'))
+    data = request.get_json(silent=True) or {}
+    new_event = Event(title=data.get('title',''), start=data.get('start',''), end=data.get('end'))
     db.session.add(new_event)
     db.session.commit()
     return jsonify({'status': 'success', 'id': new_event.id})
@@ -152,14 +151,14 @@ def get_suggestions():
 @app.route('/api/suggestions', methods=['POST'])
 def add_suggestion():
     if 'user_code' not in session:
-        return jsonify({'status': 'unauthorized'}), 401
+        return jsonify({'status': 'unauthorized', 'message': '로그인이 필요합니다.'}), 401
     try:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = data.get('title', '').strip()
         content = data.get('content', '').strip()
         
         if not title or not content:
-            return jsonify({'status': 'error', 'message': 'Empty fields'}), 400
+            return jsonify({'status': 'error', 'message': '제목과 내용을 모두 입력해 주세요.'}), 400
 
         author_name = session.get('user_name', '익명')
         new_sug = Suggestion(title=title, content=content, author=author_name, created_at=get_kst_now())
@@ -187,10 +186,10 @@ def add_comment(sug_id):
     if 'user_code' not in session or not session.get('is_admin'):
         return jsonify({'status': 'unauthorized'}), 403
     try:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         content = data.get('content', '').strip()
         if not content:
-            return jsonify({'status': 'error'}), 400
+            return jsonify({'status': 'error', 'message': '내용을 입력하세요.'}), 400
 
         comment = Comment(
             suggestion_id=sug_id, 
