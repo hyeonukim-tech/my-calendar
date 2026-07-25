@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect
 import os
 
 app = Flask(__name__)
@@ -42,12 +43,16 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+# 💡 DB 충돌 방지 및 자동 재생성 처리
 with app.app_context():
-    os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
+    instance_path = os.path.join(basedir, 'instance')
+    os.makedirs(instance_path, exist_ok=True)
+    
+    # DB 충돌 방지를 위한 안전한 생성
     try:
         db.create_all()
     except Exception as e:
-        print("DB init exception:", e)
+        print("DB init error:", e)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -86,8 +91,11 @@ def suggestions():
 def get_events():
     if 'user_code' not in session:
         return jsonify([]), 401
-    events = Event.query.all()
-    return jsonify([{'id': e.id, 'title': e.title, 'start': e.start, 'end': e.end} for e in events])
+    try:
+        events = Event.query.all()
+        return jsonify([{'id': e.id, 'title': e.title, 'start': e.start, 'end': e.end} for e in events])
+    except Exception as e:
+        return jsonify([])
 
 @app.route('/api/events', methods=['POST'])
 def add_event():
@@ -125,8 +133,8 @@ def get_suggestions():
                     comments_list.append({
                         'id': c.id,
                         'content': c.content,
-                        'author': c.author,
-                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
+                        'author': getattr(c, 'author', '관리자'),
+                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if getattr(c, 'created_at', None) else ''
                     })
             result.append({
                 'id': s.id,
@@ -138,7 +146,7 @@ def get_suggestions():
             })
         return jsonify(result)
     except Exception as e:
-        print("Error fetching suggestions:", e)
+        print("Fetch error:", e)
         return jsonify([])
 
 @app.route('/api/suggestions', methods=['POST'])
@@ -146,10 +154,11 @@ def add_suggestion():
     if 'user_code' not in session:
         return jsonify({'status': 'unauthorized'}), 401
     try:
-        data = request.json
+        data = request.get_json(force=True)
         author_name = session.get('user_name', '익명')
+        
         new_sug = Suggestion(
-            title=data.get('title', ''), 
+            title=data.get('title', '무제'), 
             content=data.get('content', ''), 
             author=author_name
         )
@@ -158,7 +167,7 @@ def add_suggestion():
         return jsonify({'status': 'success'})
     except Exception as e:
         db.session.rollback()
-        print("Error adding suggestion:", e)
+        print("Add suggestion error:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/suggestions/<int:sug_id>', methods=['DELETE'])
@@ -177,7 +186,7 @@ def add_comment(sug_id):
     if 'user_code' not in session or not session.get('is_admin'):
         return jsonify({'status': 'unauthorized'}), 403
     try:
-        data = request.json
+        data = request.get_json(force=True)
         comment = Comment(
             suggestion_id=sug_id, 
             content=data.get('content', ''), 
