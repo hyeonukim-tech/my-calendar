@@ -5,11 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NM_DS Calendar</title>
   
+  <!-- 📱 PWA 매니페스트 연동 -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#7c3aed">
+  
+  <!-- ✨ DS 감성 파비콘 ✨ -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232b004c'/><text x='50%' y='68%' font-family='sans-serif' font-weight='900' font-size='52' fill='%23ffffff' text-anchor='middle' letter-spacing='-2'>DS</text></svg>">
+  
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.min.js'></script>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
   
   <style>
+    /* 기존 스타일 유지 */
     :root {
       --bg-color: #0f172a;
       --card-bg: #1e293b;
