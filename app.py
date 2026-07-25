@@ -11,7 +11,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# 🔑 7인 전용 로그인 코드 명단 (NM9222가 관리자)
 TEAM_USERS = {
     "NM9222": "관리자",
     "NM0085": "이상훈",
@@ -54,7 +53,6 @@ def login():
         if code in TEAM_USERS:
             session['user_code'] = code
             session['user_name'] = TEAM_USERS[code]
-            # NM9222 로그인 시 자동으로 관리자 권한 부여
             session['is_admin'] = (code == "NM9222")
             return redirect(url_for('index'))
         else:
@@ -114,19 +112,30 @@ def delete_event(event_id):
 def get_suggestions():
     if 'user_code' not in session:
         return jsonify([]), 401
-    sugs = Suggestion.query.order_by(Suggestion.created_at.desc()).all()
-    result = []
-    for s in sugs:
-        comments = [{'id': c.id, 'content': c.content, 'author': c.author, 'created_at': c.created_at.strftime('%Y-%m-%d %H:%M')} for c in s.comments]
-        result.append({
-            'id': s.id,
-            'title': s.title,
-            'content': s.content,
-            'author': s.author,
-            'created_at': s.created_at.strftime('%Y-%m-%d %H:%M'),
-            'comments': comments
-        })
-    return jsonify(result)
+    try:
+        sugs = Suggestion.query.order_by(Suggestion.id.desc()).all()
+        result = []
+        for s in sugs:
+            comments_list = []
+            for c in s.comments:
+                comments_list.append({
+                    'id': c.id,
+                    'content': c.content,
+                    'author': c.author,
+                    'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
+                })
+            result.append({
+                'id': s.id,
+                'title': s.title,
+                'content': s.content,
+                'author': s.author,
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
+                'comments': comments_list
+            })
+        return jsonify(result)
+    except Exception as e:
+        print("Error fetching suggestions:", e)
+        return jsonify([])
 
 @app.route('/api/suggestions', methods=['POST'])
 def add_suggestion():

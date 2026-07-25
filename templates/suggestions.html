@@ -159,7 +159,6 @@
       </div>
     </div>
 
-    <!-- 건의글 작성 카드 -->
     <div class="card">
       <div style="font-weight: 700; margin-bottom: 12px;">✏️ 새 건의사항 등록</div>
       <div class="input-group">
@@ -173,7 +172,6 @@
       <button class="btn" onclick="submitSuggestion()">건의글 올리기</button>
     </div>
 
-    <!-- 접수된 건의 목록 -->
     <div style="font-weight: 700; margin-bottom: 12px;">📥 접수된 건의 목록</div>
     <div id="sugList">불러오는 중...</div>
   </div>
@@ -187,13 +185,16 @@
 
     function loadSuggestions() {
       fetch('/api/suggestions')
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('네트워크 응답 에러');
+          return res.json();
+        })
         .then(data => {
           const container = document.getElementById('sugList');
           container.innerHTML = '';
 
-          if (data.length === 0) {
-            container.innerHTML = '<div style="color:#94a3b8; font-size:13px;">등록된 건의사항이 없습니다.</div>';
+          if (!data || data.length === 0) {
+            container.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding: 10px;">등록된 건의사항이 없습니다. 첫 번째 건의글을 작성해 보세요!</div>';
             return;
           }
 
@@ -202,14 +203,16 @@
             item.className = 'sug-item';
 
             let commentsHtml = '';
-            sug.comments.forEach(c => {
-              commentsHtml += `
-                <div class="comment-item">
-                  <span>💬 <b>${c.author}:</b> ${c.content} <small style="color:#64748b;">(${c.created_at})</small></span>
-                  ${isAdmin ? `<button class="del-btn" onclick="deleteComment(${c.id})">삭제</button>` : ''}
-                </div>
-              `;
-            });
+            if (sug.comments && sug.comments.length > 0) {
+              sug.comments.forEach(c => {
+                commentsHtml += `
+                  <div class="comment-item">
+                    <span>💬 <b>${c.author}:</b> ${c.content} <small style="color:#64748b;">(${c.created_at})</small></span>
+                    ${isAdmin ? `<button class="del-btn" onclick="deleteComment(${c.id})">삭제</button>` : ''}
+                  </div>
+                `;
+              });
+            }
 
             let adminCommentForm = '';
             if (isAdmin) {
@@ -236,6 +239,10 @@
 
             container.appendChild(item);
           });
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('sugList').innerHTML = '<div style="color:#f87171; font-size:13px; padding: 10px;">건의 목록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
         });
     }
 
