@@ -247,10 +247,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 목록 들어간 부분 -->
+        <!-- 📋 데일리 업무 고정 목록 (확실하게 고정되도록 클래스 및 태그 구조 보완) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div class="todo-list">
+          <div class="todo-list" style="overflow-y: auto;">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
@@ -337,6 +337,8 @@
 
     function renderTodoList(elementId, events, targetDateStr) {
       const container = document.getElementById(elementId);
+      if (!container) return;
+
       const matchedEvents = events.filter(e => e.startStr.split('T')[0] === targetDateStr);
 
       container.innerHTML = '';
