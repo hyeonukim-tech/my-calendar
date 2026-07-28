@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text, inspect
 from datetime import datetime, timedelta, timezone
 import os
 
@@ -8,8 +9,9 @@ app.secret_key = 'kurly_nextmile_ds_secret_key'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_dir = os.path.join(basedir, 'instance')
-# 💡 DB 파일명을 app_v2.db로 변경하여 꼬인 구버전 DB를 강제로 우회/신규생성!
-db_path = os.path.join(instance_dir, 'app_v2.db')
+
+# 🛡️ 고정 데이터베이스 파일 (절대 파일명을 바꾸지 않아 데이터 유실을 방지합니다)
+db_path = os.path.join(instance_dir, 'app.db')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -29,12 +31,14 @@ TEAM_USERS = {
     "NM0989": "조재훈"
 }
 
+# 1. 달력 일정
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     start = db.Column(db.String(50), nullable=False)
     end = db.Column(db.String(50), nullable=True)
 
+# 2. 익명 건의함
 class Suggestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -43,6 +47,7 @@ class Suggestion(db.Model):
     created_at = db.Column(db.DateTime, default=get_kst_now)
     comments = db.relationship('Comment', backref='suggestion', cascade='all, delete-orphan', lazy=True)
 
+# 3. 건의함 댓글
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     suggestion_id = db.Column(db.Integer, db.ForeignKey('suggestion.id'), nullable=False)
@@ -50,27 +55,53 @@ class Comment(db.Model):
     author = db.Column(db.String(50), default="관리자")
     created_at = db.Column(db.DateTime, default=get_kst_now)
 
+# 4. 실시간 접속자
 class UserStatus(db.Model):
     user_code = db.Column(db.String(20), primary_key=True)
     user_name = db.Column(db.String(50), nullable=False)
     last_active = db.Column(db.DateTime, default=get_kst_now)
 
+# 🛡️ 데이터 삭제 없는 안전한 테이블 및 컬럼 자동 보완 (Auto Migration)
 with app.app_context():
     os.makedirs(instance_dir, exist_ok=True)
-    db.create_all() # 깨끗한 최신 테이블로 완전 신규 생성!
+    db.create_all()
+    
+    try:
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        if 'suggestion' in tables:
+            columns = [c['name'] for c in inspector.get_columns('suggestion')]
+            with db.engine.connect() as conn:
+                if 'author' not in columns:
+                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN author VARCHAR(50) DEFAULT '익명';"))
+                if 'created_at' not in columns:
+                    conn.execute(text("ALTER TABLE suggestion ADD COLUMN created_at DATETIME;"))
+                conn.commit()
+                
+        if 'comment' in tables:
+            columns = [c['name'] for c in inspector.get_columns('comment')]
+            with db.engine.connect() as conn:
+                if 'author' not in columns:
+                    conn.execute(text("ALTER TABLE comment ADD COLUMN author VARCHAR(50) DEFAULT '관리자';"))
+                if 'created_at' not in columns:
+                    conn.execute(text("ALTER TABLE comment ADD COLUMN created_at DATETIME;"))
+                conn.commit()
+    except Exception as e:
+        print("Safety Migration Check:", e)
 
 @app.before_request
 def update_last_active():
     if 'user_code' in session:
         code = session['user_code']
         name = session.get('user_name', '사용자')
-        status = UserStatus.query.get(code)
-        if not status:
-            status = UserStatus(user_code=code, user_name=name, last_active=get_kst_now())
-            db.session.add(status)
-        else:
-            status.last_active = get_kst_now()
         try:
+            status = UserStatus.query.get(code)
+            if not status:
+                status = UserStatus(user_code=code, user_name=name, last_active=get_kst_now())
+                db.session.add(status)
+            else:
+                status.last_active = get_kst_now()
             db.session.commit()
         except:
             db.session.rollback()
@@ -91,10 +122,13 @@ def login():
 @app.route('/logout')
 def logout():
     if 'user_code' in session:
-        status = UserStatus.query.get(session['user_code'])
-        if status:
-            db.session.delete(status)
-            db.session.commit()
+        try:
+            status = UserStatus.query.get(session['user_code'])
+            if status:
+                db.session.delete(status)
+                db.session.commit()
+        except:
+            pass
     session.clear()
     return redirect(url_for('login'))
 
@@ -116,12 +150,13 @@ def suggestions():
 def get_online_users():
     if 'user_code' not in session:
         return jsonify([]), 401
-    
-    five_mins_ago = get_kst_now() - timedelta(minutes=5)
-    online_statuses = UserStatus.query.filter(UserStatus.last_active >= five_mins_ago).all()
-    
-    online_names = [u.user_name for u in online_statuses]
-    return jsonify(online_names)
+    try:
+        five_mins_ago = get_kst_now() - timedelta(minutes=5)
+        online_statuses = UserStatus.query.filter(UserStatus.last_active >= five_mins_ago).all()
+        online_names = [u.user_name for u in online_statuses]
+        return jsonify(online_names)
+    except:
+        return jsonify([])
 
 # --- 달력 API ---
 @app.route('/api/events', methods=['GET'])
@@ -131,18 +166,23 @@ def get_events():
     try:
         events = Event.query.all()
         return jsonify([{'id': e.id, 'title': e.title, 'start': e.start, 'end': e.end} for e in events])
-    except:
+    except Exception as e:
+        print("Fetch events error:", e)
         return jsonify([])
 
 @app.route('/api/events', methods=['POST'])
 def add_event():
     if 'user_code' not in session:
         return jsonify({'status': 'unauthorized'}), 401
-    data = request.get_json(silent=True) or {}
-    new_event = Event(title=data.get('title',''), start=data.get('start',''), end=data.get('end'))
-    db.session.add(new_event)
-    db.session.commit()
-    return jsonify({'status': 'success', 'id': new_event.id})
+    try:
+        data = request.get_json(silent=True) or {}
+        new_event = Event(title=data.get('title',''), start=data.get('start',''), end=data.get('end'))
+        db.session.add(new_event)
+        db.session.commit()
+        return jsonify({'status': 'success', 'id': new_event.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/events/<int:event_id>', methods=['DELETE'])
 def delete_event(event_id):
@@ -170,15 +210,15 @@ def get_suggestions():
                     comments_list.append({
                         'id': c.id,
                         'content': c.content,
-                        'author': c.author,
-                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else ''
+                        'author': getattr(c, 'author', '관리자'),
+                        'created_at': c.created_at.strftime('%Y-%m-%d %H:%M') if getattr(c, 'created_at', None) else ''
                     })
             result.append({
                 'id': s.id,
                 'title': s.title,
                 'content': s.content,
-                'author': s.author,
-                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
+                'author': getattr(s, 'author', '익명'),
+                'created_at': s.created_at.strftime('%Y-%m-%d %H:%M') if getattr(s, 'created_at', None) else '',
                 'comments': comments_list
             })
         return jsonify(result)
