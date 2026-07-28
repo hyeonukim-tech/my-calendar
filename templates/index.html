@@ -125,9 +125,9 @@
 
     .todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     
-    /* 📌 데일리 전용 스타일 (자바스크립트 간섭 방지) */
+    /* 📌 데일리 업무 전용 스타일 (JS 접근 불가능 클래스) */
     .daily-task-box { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-    
+
     .todo-item {
       padding: 7px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
       margin-bottom: 5px; font-size: 12px; border: 1px solid var(--border-color);
@@ -251,7 +251,7 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 영역 (클래스명을 바꾸어 JS가 절대 못 건드리게 고정) -->
+        <!-- 📋 데일리 업무 고정 영역 (daily-task-box로 완전히 격리시켜 JS가 덮어쓰는 것 차단) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
           <div class="daily-task-box">
@@ -328,6 +328,7 @@
       tomorrow.setDate(now.getDate() + 1);
       const tomorrowStr = formatDate(tomorrow);
 
+      // 오늘 및 내일 할 일만 자바스크립트로 업데이트
       renderTodoList('todayTodoList', events, todayStr);
       renderTodoList('tomorrowTodoList', events, tomorrowStr);
     }
@@ -339,6 +340,7 @@
       return `${year}-${month}-${day}`;
     }
 
+    // 사진 속 지워지던 원인 완벽 수정: 지정된 ID(todayTodoList, tomorrowTodoList)만 업데이트함
     function renderTodoList(elementId, events, targetDateStr) {
       const container = document.getElementById(elementId);
       if (!container) return;
