@@ -123,7 +123,7 @@
       flex-shrink: 0;
     }
 
-    .todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+    .todo-list, .daily-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     .todo-item {
       padding: 7px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
       margin-bottom: 5px; font-size: 12px; border: 1px solid var(--border-color);
@@ -247,10 +247,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 목록 (확실하게 고정되도록 클래스 및 태그 구조 보완) -->
+        <!-- 📋 데일리 업무 (daily-list 클래스로 JS 충돌 방지하여 100% 고정 표출) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div class="todo-list" style="overflow-y: auto;">
+          <div class="daily-list">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
