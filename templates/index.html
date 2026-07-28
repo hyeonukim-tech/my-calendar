@@ -123,7 +123,8 @@
       flex-shrink: 0;
     }
 
-    .todo-list, .daily-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+    .todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+    .daily-task-container { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     .todo-item {
       padding: 7px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
       margin-bottom: 5px; font-size: 12px; border: 1px solid var(--border-color);
@@ -247,10 +248,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 (daily-list 클래스로 JS 충돌 방지하여 100% 고정 표출) -->
+        <!-- 📋 데일리 업무 고정 영역 (JS 영향 제거) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div class="daily-list">
+          <div class="daily-task-container" id="fixedDailyTaskList">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
@@ -314,6 +315,18 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function changeScale(scale) { document.getElementById('mainWrapper').style.zoom = scale; }
 
+    function renderHardcodedDailyTasks() {
+      const container = document.getElementById('fixedDailyTaskList');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
+        <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
+        <div class="todo-item"><span>3. 온도계 전송</span></div>
+        <div class="todo-item"><span>4. AI CCTV 관리 시트</span></div>
+        <div class="todo-item"><span>5. 배차시작</span></div>
+      `;
+    }
+
     function updateTasks() {
       if (!globalCalendar) return;
 
@@ -326,6 +339,7 @@
 
       renderTodoList('todayTodoList', events, todayStr);
       renderTodoList('tomorrowTodoList', events, tomorrowStr);
+      renderHardcodedDailyTasks();
     }
 
     function formatDate(date) {
@@ -362,18 +376,21 @@
         .then(users => {
           const countEl = document.getElementById('onlineCount');
           const namesEl = document.getElementById('onlineNames');
-          countEl.innerText = users.length;
+          if (countEl) countEl.innerText = users.length;
           
-          if (users.length === 0) {
-            namesEl.innerText = '접속자 없음';
-          } else {
-            namesEl.innerText = users.join(', ');
+          if (namesEl) {
+            if (users.length === 0) {
+              namesEl.innerText = '접속자 없음';
+            } else {
+              namesEl.innerText = users.join(', ');
+            }
           }
         })
         .catch(() => {});
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+      renderHardcodedDailyTasks();
       fetchOnlineUsers();
       setInterval(fetchOnlineUsers, 10000);
 
