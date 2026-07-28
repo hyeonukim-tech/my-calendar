@@ -7,13 +7,18 @@ import os
 app = Flask(__name__)
 app.secret_key = 'kurly_nextmile_ds_secret_key'
 
+# ----------------------------------------------------
+# 🛡️ Supabase 외부 DB 우선 연결 (없을 경우 로컬 SQLite 사용)
+# ----------------------------------------------------
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_dir = os.path.join(basedir, 'instance')
-
-# 🛡️ 고정 데이터베이스 파일 (절대 파일명을 바꾸지 않아 데이터 유실을 방지합니다)
 db_path = os.path.join(instance_dir, 'app.db')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or ('sqlite:///' + db_path)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -61,7 +66,7 @@ class UserStatus(db.Model):
     user_name = db.Column(db.String(50), nullable=False)
     last_active = db.Column(db.DateTime, default=get_kst_now)
 
-# 🛡️ 데이터 삭제 없는 안전한 테이블 및 컬럼 자동 보완 (Auto Migration)
+# 🛡️ 안전한 테이블 및 컬럼 자동 보완 (Auto Migration)
 with app.app_context():
     os.makedirs(instance_dir, exist_ok=True)
     db.create_all()
