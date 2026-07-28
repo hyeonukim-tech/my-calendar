@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#7c3aed">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232b004c'/><text x='50%' y='68%' font-family='sans-serif' font-weight='900' font-size='52' fill='%23ffffff' text-anchor='middle' letter-spacing='-2'>DS</text></svg>">
   
+  <!-- 🟢 .min.min 오타 수정 부분 -->
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
   
@@ -247,10 +248,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 영역 (JS 침범 완벽 방지) -->
+        <!-- 📋 데일리 업무 고정 항목 -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div id="myDailyTaskWrapper" style="overflow-y: auto; flex-grow: 1;">
+          <div class="todo-list" style="overflow-y: auto;">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
@@ -314,20 +315,6 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function changeScale(scale) { document.getElementById('mainWrapper').style.zoom = scale; }
 
-    // 🔒 JS가 렌더링될 때마다 데일리 업무를 계속 강제로 복구해주는 보호 로직
-    function keepDailyTasks() {
-      const target = document.getElementById('myDailyTaskWrapper');
-      if (target) {
-        target.innerHTML = `
-          <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
-          <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
-          <div class="todo-item"><span>3. 온도계 전송</span></div>
-          <div class="todo-item"><span>4. AI CCTV 관리 시트</span></div>
-          <div class="todo-item"><span>5. 배차시작</span></div>
-        `;
-      }
-    }
-
     function updateTasks() {
       if (!globalCalendar) return;
 
@@ -340,9 +327,6 @@
 
       renderTodoList('todayTodoList', events, todayStr);
       renderTodoList('tomorrowTodoList', events, tomorrowStr);
-      
-      // 실행 시 데일리 업무 재복구
-      keepDailyTasks();
     }
 
     function formatDate(date) {
@@ -393,7 +377,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      keepDailyTasks();
       fetchOnlineUsers();
       setInterval(fetchOnlineUsers, 10000);
 
