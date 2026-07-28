@@ -124,7 +124,6 @@
     }
 
     .todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-    .daily-task-container { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     .todo-item {
       padding: 7px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
       margin-bottom: 5px; font-size: 12px; border: 1px solid var(--border-color);
@@ -248,10 +247,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 영역 (JS 영향 제거) -->
+        <!-- 📋 데일리 업무 고정 영역 (JS 침범 완벽 방지) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div class="daily-task-container" id="fixedDailyTaskList">
+          <div id="myDailyTaskWrapper" style="overflow-y: auto; flex-grow: 1;">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
@@ -315,16 +314,18 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function changeScale(scale) { document.getElementById('mainWrapper').style.zoom = scale; }
 
-    function renderHardcodedDailyTasks() {
-      const container = document.getElementById('fixedDailyTaskList');
-      if (!container) return;
-      container.innerHTML = `
-        <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
-        <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
-        <div class="todo-item"><span>3. 온도계 전송</span></div>
-        <div class="todo-item"><span>4. AI CCTV 관리 시트</span></div>
-        <div class="todo-item"><span>5. 배차시작</span></div>
-      `;
+    // 🔒 JS가 렌더링될 때마다 데일리 업무를 계속 강제로 복구해주는 보호 로직
+    function keepDailyTasks() {
+      const target = document.getElementById('myDailyTaskWrapper');
+      if (target) {
+        target.innerHTML = `
+          <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
+          <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
+          <div class="todo-item"><span>3. 온도계 전송</span></div>
+          <div class="todo-item"><span>4. AI CCTV 관리 시트</span></div>
+          <div class="todo-item"><span>5. 배차시작</span></div>
+        `;
+      }
     }
 
     function updateTasks() {
@@ -339,7 +340,9 @@
 
       renderTodoList('todayTodoList', events, todayStr);
       renderTodoList('tomorrowTodoList', events, tomorrowStr);
-      renderHardcodedDailyTasks();
+      
+      // 실행 시 데일리 업무 재복구
+      keepDailyTasks();
     }
 
     function formatDate(date) {
@@ -390,7 +393,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      renderHardcodedDailyTasks();
+      keepDailyTasks();
       fetchOnlineUsers();
       setInterval(fetchOnlineUsers, 10000);
 
