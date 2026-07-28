@@ -9,7 +9,6 @@
   <meta name="theme-color" content="#7c3aed">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232b004c'/><text x='50%' y='68%' font-family='sans-serif' font-weight='900' font-size='52' fill='%23ffffff' text-anchor='middle' letter-spacing='-2'>DS</text></svg>">
   
-  <!-- 🟢 .min.min 오타 수정 부분 -->
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
   
@@ -125,6 +124,10 @@
     }
 
     .todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+    
+    /* 📌 데일리 전용 스타일 (자바스크립트 간섭 방지) */
+    .daily-task-box { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+    
     .todo-item {
       padding: 7px 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
       margin-bottom: 5px; font-size: 12px; border: 1px solid var(--border-color);
@@ -248,10 +251,10 @@
           </div>
         </div>
 
-        <!-- 📋 데일리 업무 고정 항목 -->
+        <!-- 📋 데일리 업무 고정 영역 (클래스명을 바꾸어 JS가 절대 못 건드리게 고정) -->
         <div class="card side-card">
           <div class="card-title">📋 데일리 업무</div>
-          <div class="todo-list" style="overflow-y: auto;">
+          <div class="daily-task-box">
             <div class="todo-item"><span>1. 3PL 주소 정정 확인</span></div>
             <div class="todo-item"><span>2. Daily 안전점검 촬영</span></div>
             <div class="todo-item"><span>3. 온도계 전송</span></div>
